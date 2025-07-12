@@ -1,0 +1,46 @@
+{% extends "navbar.html" %}
+
+{% block title %}Non-Veg Pickles - HomeMade Pickles{% endblock %}
+
+{% block content %}
+<h1 style="text-align: center; color: #2e2e2e; padding-top: 20px;">Non-Vegetarian Pickles</h1>
+
+<div class="container" style="display: grid; grid-template-columns: repeat(3, 1fr); justify-items: center; gap: 30px; padding: 30px;">
+  {% set items = [
+    {'name': 'Chicken Pickle', 'description': 'Spicy boneless chicken chunks in traditional Andhra masala.', 'price': 250, 'image': '/static/images/chicken_pickle.jpg'},
+    {'name': 'Mutton Pickle', 'description': 'Tender mutton pieces pickled in flavorful homemade spices.', 'price': 270, 'image': '/static/images/mutton_pickle.jpg'},
+    {'name': 'Fish Pickle', 'description': 'Delicious fish chunks marinated in tangy and spicy paste.', 'price': 260, 'image': '/static/images/fish_pickle.jpeg'},
+    {'name': 'Prawn Pickle', 'description': 'Succulent prawns pickled with chili and garlic blend.', 'price': 280, 'image': '/static/images/prawn_pickle.jpeg'},
+    {'name': 'Crab Pickle', 'description': 'Unique spicy crab pickle made in coastal Andhra style.', 'price': 300, 'image': '/static/images/crab_pickle.jpeg'},
+    {'name': 'Egg Pickle', 'description': 'Boiled eggs pickled in spicy masala for a unique twist.', 'price': 240, 'image': '/static/images/egg_pickle.jpeg'}
+  ] %}
+
+  {% for item in items %}
+  <div class="card" style="background: white; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); width: 260px; padding: 20px; text-align: center; transition: transform 0.3s ease;">
+    <img src="{{ item.image }}" alt="{{ item.name }}" style="width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 10px;">
+    <h3>{{ item.name }}</h3>
+    <p>{{ item.description }}</p>
+
+    <div class="price" id="price-{{ loop.index0 }}" data-base-price="{{ item.price }}" style="color: #c14444; font-weight: bold; margin: 8px 0;">
+      ₹{{ item.price }}
+    </div>
+
+    <label>Select Weight:</label>
+    <select onchange="updatePrice(this, {{ loop.index0 }})">
+      <option value="250">250g</option>
+      <option value="500">500g</option>
+      <option value="1000">1kg</option>
+    </select>
+
+    <form method="POST" action="/add_to_cart">
+      <input type="hidden" name="name" value="{{ item.name }}">
+      <input type="hidden" name="price" value="{{ item.price }}">
+      <input type="hidden" id="weight-{{ loop.index0 }}" name="weight" value="250">
+      <button type="submit" class="buy-button" style="background-color: #c14444; color: white; padding: 8px 15px; border: none; border-radius: 6px; margin-top: 10px; cursor: pointer;">Buy Now</button>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% endblock %}

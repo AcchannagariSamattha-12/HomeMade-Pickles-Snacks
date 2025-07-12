@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HomeMade Pickles</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #fff8f1;
+      font-family: 'Segoe UI', sans-serif;
+      text-align: center;
+    }
+
+    header {
+      background-color: #ff7f50;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      color: white;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .logo img {
+      height: 40px;
+      margin-right: 10px;
+    }
+
+    .banner {
+      margin-top: 20px;
+      width: 950px;
+      height: 320px;
+      object-fit: cover;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #ff5200;
+      margin: 30px 0 10px;
+      font-size: 36px;
+    }
+
+    p {
+      color: #333;
+      max-width: 700px;
+      margin: 0 auto 30px;
+      font-size: 18px;
+    }
+
+    .buttons a {
+      display: inline-block;
+      background-color: #ff5200;
+      color: white;
+      padding: 12px 24px;
+      margin: 10px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+
+    .buttons a:hover {
+      background-color: #e04b00;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Pickles Logo">
+      HomeMade Pickles
+    </div>
+  </header>
+
+  <img src="{{ url_for('static', filename='images/banner.jpeg') }}" alt="Pickles Banner" class="banner">
+
+  <h1>Welcome to HomeMade Pickles & Snacks</h1>
+  <p>Experience the rich flavors of authentic, homemade pickles and snacks. Crafted with care, just like tradition intended. Sign up or log in to begin your flavorful journey.</p>
+
+  <div class="buttons">
+    <a href="{{ url_for('login') }}">Login</a>
+    <a href="{{ url_for('register') }}">Sign Up</a>
+  </div>
+
+</body>
+</html>

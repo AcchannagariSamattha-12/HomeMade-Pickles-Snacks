@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Order Confirmed | Homemade Pickles & Snacks</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #fff9f4;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 60px auto;
+      background: #ffffff;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+      padding: 40px;
+      text-align: center;
+    }
+    h1 {
+      color: #2e7d32;
+      font-size: 32px;
+      margin-bottom: 15px;
+    }
+    h2 {
+      color: #d84315;
+      font-size: 24px;
+      margin-bottom: 25px;
+    }
+    p {
+      font-size: 18px;
+      color: #333333;
+      margin: 10px 0;
+    }
+    .order-id {
+      background: #fce4ec;
+      padding: 10px;
+      border-radius: 8px;
+      display: inline-block;
+      margin: 20px 0;
+      color: #880e4f;
+      font-weight: bold;
+      font-size: 16px;
+    }
+    .btn {
+      display: inline-block;
+      margin-top: 30px;
+      padding: 14px 28px;
+      background-color: #c14444;
+      color: #fff;
+      text-decoration: none;
+      font-size: 16px;
+      border-radius: 10px;
+      transition: background-color 0.3s;
+    }
+    .btn:hover {
+      background-color: #a73535;
+    }
+    .footer-note {
+      margin-top: 40px;
+      font-size: 15px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Order Confirmed 🎉</h1>
+    <h2>Thank you, {{ name }}!</h2>
+    <p>Your delicious order has been placed and is on its way to bring joy to your taste buds.</p>
+    <p class="order-id">Order ID: {{ order_id }}</p>
+    <p>We’ll notify you once your order is packed and ready for dispatch.</p>
+    <a href="{{ url_for(last_category|default('veg_pickles')) }}" class="btn">Continue Shopping</a>
+    <p class="footer-note">Have questions? Reach out to us anytime through the <a href="{{ url_for('contact_us') }}">Contact Us</a> page.</p>
+  </div>
+</body>
+</html>
