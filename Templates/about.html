@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>About Us - HomeMade Pickles</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fff9f3;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar {
+      background-color: #ff7a2f;
+      padding: 15px;
+      text-align: center;
+    }
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      margin: 0 15px;
+      font-weight: bold;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 40px auto;
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .logo-center {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+    .logo-center img {
+      height: 100px;
+    }
+    h1 {
+      color: #ff7a2f;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    h2 {
+      color: #d15600;
+    }
+    p, li {
+      font-size: 16px;
+      color: #333;
+      line-height: 1.7;
+    }
+    .section {
+      margin-top: 30px;
+    }
+    ul {
+      padding-left: 20px;
+    }
+    a {
+      color: #ff7a2f;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="navbar">
+    <a href="{{ url_for('home') }}">Home</a>
+    <a href="{{ url_for('veg_pickles') }}">Veg Pickles</a>
+    <a href="{{ url_for('non_veg_pickles') }}">Non-Veg Pickles</a>
+    <a href="{{ url_for('snacks') }}">Snacks</a>
+    <a href="{{ url_for('about') }}">About</a>
+    <a href="{{ url_for('contact_us') }}">Contact</a>
+    <a href="{{ url_for('cart_page') }}">Cart ({{ cart_count if cart_count else 0 }})</a>
+  </div>
+
+  <div class="container">
+    <div class="logo-center">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="HomeMade Pickles Logo">
+    </div>
+
+    <h1>About Us</h1>
+    <p>Welcome to <strong>HomeMade Pickles & Snacks</strong> — your destination for delicious, authentic, and homemade flavors from across India.</p>
+
+    <div class="section">
+      <h2>Our Mission</h2>
+      <p>We aim to bring back the taste of tradition with every bite. Our pickles and snacks are prepared using age-old recipes passed down through generations, using locally sourced ingredients and no preservatives.</p>
+    </div>
+
+    <div class="section">
+      <h2>Why Choose Us?</h2>
+      <ul>
+        <li>✅ 100% Homemade with natural ingredients</li>
+        <li>✅ Prepared fresh for every order</li>
+        <li>✅ Packed with hygiene and care</li>
+        <li>✅ Delivered to your doorstep across India</li>
+      </ul>
+    </div>
+
+    <div class="section">
+      <h2>Our Story</h2>
+      <p>What started in a small kitchen as a passion project is now a growing venture run by food enthusiasts who believe in purity, flavor, and tradition. With each jar, we promise a taste of love and heritage.</p>
+    </div>
+
+    <div class="section">
+      <h2>Connect With Us</h2>
+      <p>Have suggestions or want to collaborate? Visit our <a href="{{ url_for('contact_us') }}">Contact</a> page or email us at <strong>support@homemadepickles.in</strong>.</p>
+    </div>
+  </div>
+
+</body>
+</html>
