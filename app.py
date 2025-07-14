@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import boto3
 import os
+import uuid
 from dotenv import load_dotenv
 import signal
 import sys
@@ -27,8 +28,7 @@ mail = Mail(app)
 aws_region = os.getenv('AWS_REGION_NAME')
 dynamodb = boto3.resource('dynamodb', region_name=aws_region)
 users_table = dynamodb.Table(os.getenv('USERS_TABLE_NAME'))
-cart_table = dynamodb.Table('Cart')
-products_table = dynamodb.Table('Products')
+orders_table = dynamodb.Table(os.getenv('ORDERS_TABLE_NAME'))
 
 @app.context_processor
 def inject_globals():
@@ -49,11 +49,11 @@ def register():
         email = request.form['email']
         password = generate_password_hash(request.form['password'])
 
-        response = users_table.get_item(Key={'email': email})
+        response = users_table.get_item(Key={'Email': email})
         if 'Item' in response:
             flash('Email already registered.', 'error')
         else:
-            users_table.put_item(Item={'email': email, 'username': username, 'password': password})
+            users_table.put_item(Item={'Email': email, 'username': username, 'password': password})
             flash('Registered successfully! Please login.', 'success')
             return redirect(url_for('login'))
 
@@ -65,11 +65,12 @@ def login():
         email = request.form['email']
         password_input = request.form['password']
 
-        response = users_table.get_item(Key={'email': email})
+        response = users_table.get_item(Key={'Email': email})
         user = response.get('Item')
 
         if user and check_password_hash(user['password'], password_input):
             session['user'] = user['username']
+            session['email'] = email
             flash('Login successful!', 'success')
             return redirect(url_for('veg_pickles'))
         else:
@@ -80,6 +81,7 @@ def login():
 @app.route('/logout')
 def logout():
     session.pop('user', None)
+    session.pop('email', None)
     session.pop('cart', None)
     flash('Logged out successfully.', 'success')
     return redirect(url_for('home'))
@@ -105,20 +107,10 @@ def add_to_cart():
         flash('Please log in to add items to your cart.', 'error')
         return redirect(url_for('login'))
 
-    user_id = session['user']
     name = request.form['name']
     price = int(request.form['price'])
-    product_id = request.form.get('product_id', name.replace(' ', '_'))
-
-    cart_table.put_item(
-        Item={
-            'user_id': user_id,
-            'product_id': product_id,
-            'name': name,
-            'price': price,
-            'quantity': 1
-        }
-    )
+    quantity = int(request.form.get('quantity', 1))
+    session.setdefault('cart', []).append({'name': name, 'price': price, 'quantity': quantity})
     flash('Item added to cart!', 'success')
     return redirect(url_for('cart_page'))
 
@@ -128,40 +120,47 @@ def cart_page():
         flash('Please log in to view your cart.', 'error')
         return redirect(url_for('login'))
 
-    user_id = session['user']
-    response = cart_table.query(
-        KeyConditionExpression=boto3.dynamodb.conditions.Key('user_id').eq(user_id)
-    )
-    cart = response.get('Items', [])
+    cart = session.get('cart', [])
     total = sum(item['price'] * item['quantity'] for item in cart)
     return render_template('cart.html', cart_items=cart, total_amount=total)
 
 @app.route('/remove_from_cart', methods=['POST'])
 def remove_from_cart():
-    if 'user' not in session:
-        return redirect(url_for('login'))
-
-    user_id = session['user']
-    item_id = request.form['item_name'].replace(' ', '_')
-
-    cart_table.delete_item(
-        Key={
-            'user_id': user_id,
-            'product_id': item_id
-        }
-    )
+    name = request.form['item_name']
+    cart = session.get('cart', [])
+    session['cart'] = [item for item in cart if item['name'] != name]
     flash('Item removed from cart.', 'success')
     return redirect(url_for('cart_page'))
 
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     if request.method == 'POST':
+        if 'email' not in session:
+            flash('Please log in to place an order.', 'error')
+            return redirect(url_for('login'))
+
+        email = session['email']
         name = request.form.get('name', 'Customer')
-        order_id = datetime.now().strftime("%Y%m%d%H%M%S")
-        last_category = session.get('last_category', 'veg_pickles')
+        order_id = str(uuid.uuid4())
+        timestamp = datetime.now().isoformat()
+        cart_items = session.get('cart', [])
+
+        for item in cart_items:
+            orders_table.put_item(
+                Item={
+                    'order_id': order_id,
+                    'Email': email,
+                    'name': name,
+                    'item_name': item['name'],
+                    'price': item['price'],
+                    'quantity': item['quantity'],
+                    'timestamp': timestamp
+                }
+            )
+
         session.pop('cart', None)
         flash("Order placed successfully!", 'success')
-        return render_template('success.html', name=name, order_id=order_id, last_category=last_category)
+        return render_template('success.html', name=name, order_id=order_id, last_category=session.get('last_category', 'veg_pickles'))
     return render_template('checkout.html')
 
 @app.route('/about')
