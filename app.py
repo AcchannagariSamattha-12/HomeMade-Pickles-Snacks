@@ -2,24 +2,34 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_mail import Mail, Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import boto3
 import os
+from dotenv import load_dotenv
+import signal
+import sys
+
+# Load environment variables from .env
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)
-
-# Simulated in-memory user database
-users_db = {}
+app.secret_key = os.getenv('SECRET_KEY')
 
 # Email configuration
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT'))
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your_real_email@gmail.com'  # Replace this
-app.config['MAIL_PASSWORD'] = 'your_generated_app_password'  # Replace this
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 
 mail = Mail(app)
 
-# Inject current time and cart count into all templates
+# DynamoDB setup
+aws_region = os.getenv('AWS_REGION_NAME')
+dynamodb = boto3.resource('dynamodb', region_name=aws_region)
+users_table = dynamodb.Table(os.getenv('USERS_TABLE_NAME'))
+cart_table = dynamodb.Table('Cart')
+products_table = dynamodb.Table('Products')
+
 @app.context_processor
 def inject_globals():
     cart = session.get('cart', [])
@@ -28,12 +38,10 @@ def inject_globals():
         'cart_count': sum(item['quantity'] for item in cart)
     }
 
-# Home
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# Register
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -41,22 +49,24 @@ def register():
         email = request.form['email']
         password = generate_password_hash(request.form['password'])
 
-        if email in users_db:
+        response = users_table.get_item(Key={'email': email})
+        if 'Item' in response:
             flash('Email already registered.', 'error')
         else:
-            users_db[email] = {'username': username, 'password': password}
+            users_table.put_item(Item={'email': email, 'username': username, 'password': password})
             flash('Registered successfully! Please login.', 'success')
             return redirect(url_for('login'))
 
     return render_template('register.html')
 
-# Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         email = request.form['email']
         password_input = request.form['password']
-        user = users_db.get(email)
+
+        response = users_table.get_item(Key={'email': email})
+        user = response.get('Item')
 
         if user and check_password_hash(user['password'], password_input):
             session['user'] = user['username']
@@ -67,7 +77,6 @@ def login():
 
     return render_template('login.html')
 
-# Logout
 @app.route('/logout')
 def logout():
     session.pop('user', None)
@@ -75,90 +84,103 @@ def logout():
     flash('Logged out successfully.', 'success')
     return redirect(url_for('home'))
 
-# Veg Pickles Page
 @app.route('/veg_pickles')
 def veg_pickles():
     session['last_category'] = 'veg_pickles'
     return render_template('veg_pickles.html')
 
-# Non-Veg Pickles Page
 @app.route('/non_veg_pickles')
 def non_veg_pickles():
     session['last_category'] = 'non_veg_pickles'
     return render_template('non_veg_pickles.html')
 
-# Snacks Page
 @app.route('/snacks')
 def snacks():
     session['last_category'] = 'snacks'
     return render_template('snacks.html')
 
-# Add to Cart
 @app.route('/add_to_cart', methods=['POST'])
 def add_to_cart():
+    if 'user' not in session:
+        flash('Please log in to add items to your cart.', 'error')
+        return redirect(url_for('login'))
+
+    user_id = session['user']
     name = request.form['name']
     price = int(request.form['price'])
+    product_id = request.form.get('product_id', name.replace(' ', '_'))
 
-    cart = session.get('cart', [])
-
-    for item in cart:
-        if item['name'] == name:
-            item['quantity'] += 1
-            break
-    else:
-        cart.append({'name': name, 'price': price, 'quantity': 1})
-
-    session['cart'] = cart
+    cart_table.put_item(
+        Item={
+            'user_id': user_id,
+            'product_id': product_id,
+            'name': name,
+            'price': price,
+            'quantity': 1
+        }
+    )
+    flash('Item added to cart!', 'success')
     return redirect(url_for('cart_page'))
 
-# View Cart
 @app.route('/cart')
 def cart_page():
-    cart = session.get('cart', [])
+    if 'user' not in session:
+        flash('Please log in to view your cart.', 'error')
+        return redirect(url_for('login'))
+
+    user_id = session['user']
+    response = cart_table.query(
+        KeyConditionExpression=boto3.dynamodb.conditions.Key('user_id').eq(user_id)
+    )
+    cart = response.get('Items', [])
     total = sum(item['price'] * item['quantity'] for item in cart)
     return render_template('cart.html', cart_items=cart, total_amount=total)
 
-# Remove from Cart
 @app.route('/remove_from_cart', methods=['POST'])
 def remove_from_cart():
-    item_name = request.form['item_name']
-    cart = session.get('cart', [])
-    cart = [item for item in cart if item['name'] != item_name]
-    session['cart'] = cart
+    if 'user' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user']
+    item_id = request.form['item_name'].replace(' ', '_')
+
+    cart_table.delete_item(
+        Key={
+            'user_id': user_id,
+            'product_id': item_id
+        }
+    )
+    flash('Item removed from cart.', 'success')
     return redirect(url_for('cart_page'))
 
-# Checkout Page
 @app.route('/checkout', methods=['GET', 'POST'])
 def checkout():
     if request.method == 'POST':
         name = request.form.get('name', 'Customer')
         order_id = datetime.now().strftime("%Y%m%d%H%M%S")
-        last_category = session.get('last_category', 'veg_pickles')  # Default fallback
+        last_category = session.get('last_category', 'veg_pickles')
         session.pop('cart', None)
+        flash("Order placed successfully!", 'success')
         return render_template('success.html', name=name, order_id=order_id, last_category=last_category)
     return render_template('checkout.html')
 
-# About Page
 @app.route('/about')
 def about():
     return render_template('about.html')
 
-# Contact Us Page
 @app.route('/contact_us')
 def contact_us():
     return render_template('contact_us.html')
 
-# Handle contact form submission
 @app.route('/send_message', methods=['POST'])
 def send_message():
     name = request.form.get('name')
     message = request.form.get('message')
 
     print(f"[Contact Message] From: {name} | Message: {message}")
-    flash("Thank you for your message! We'll get back to you soon.")
+    flash("Thank you for your message! We'll get back to you soon.", 'info')
     return redirect(url_for('contact_us'))
 
-# Optional test email route
 @app.route('/send_email')
 def send_email():
     msg = Message(
@@ -170,5 +192,14 @@ def send_email():
     mail.send(msg)
     return 'Email sent successfully!'
 
+# Graceful exit handler
+def handle_exit(sig, frame):
+    print("\nExiting Flask app gracefully...")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, handle_exit)
+signal.signal(signal.SIGTERM, handle_exit)
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
