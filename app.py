@@ -49,11 +49,11 @@ def register():
         email = request.form['email']
         password = generate_password_hash(request.form['password'])
 
-        response = users_table.get_item(Key={'Email': email})
+        response = users_table.get_item(Key={'email': email})
         if 'Item' in response:
             flash('Email already registered.', 'error')
         else:
-            users_table.put_item(Item={'Email': email, 'username': username, 'password': password})
+            users_table.put_item(Item={'email': email, 'username': username, 'password': password})
             flash('Registered successfully! Please login.', 'success')
             return redirect(url_for('login'))
 
@@ -65,7 +65,7 @@ def login():
         email = request.form['email']
         password_input = request.form['password']
 
-        response = users_table.get_item(Key={'Email': email})
+        response = users_table.get_item(Key={'email': email})
         user = response.get('Item')
 
         if user and check_password_hash(user['password'], password_input):
